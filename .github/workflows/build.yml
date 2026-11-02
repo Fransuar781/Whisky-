@@ -37,12 +37,18 @@ jobs:
           distribution: temurin
           java-version: 25
 
-      - uses: android-actions/setup-android@v3
-
-      - name: Licenças e plataforma 37 do SDK
+      # O runner já traz o Android SDK (ANDROID_HOME). Só aceitamos as licenças
+      # e deixamos o Gradle baixar a plataforma 37 que precisar.
+      - name: Licenças do SDK
         run: |
-          yes | sdkmanager --licenses > /dev/null || true
-          sdkmanager "platforms;android-37" "build-tools;37.0.0" || true
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SDKM" ] || SDKM=$(command -v sdkmanager || true)
+          echo "sdkmanager: $SDKM"
+          if [ -n "$SDKM" ]; then
+            yes | "$SDKM" --licenses > /dev/null || true
+            "$SDKM" "platforms;android-37" || true
+          fi
+          echo "sdk.dir=$ANDROID_HOME" > "$PROJECT_DIR/local.properties"
 
       - uses: gradle/actions/setup-gradle@v4
         with:
@@ -56,4 +62,3 @@ jobs:
         with:
           name: AIDE-OS-debug-apk
           path: ${{ env.PROJECT_DIR }}/app/build/outputs/apk/debug/*.apk
-          
